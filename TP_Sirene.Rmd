@@ -2,7 +2,9 @@
 title: "TP_Sirene"
 author: "Benoît Blanc"
 date: "10/10/2019"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -111,9 +113,30 @@ alim42 %>%
 
 Pour les communes qui ne comptent qu’un seul commerce “alimentaire”, de quel type est-il, le plus fréquemment?
 ```{r}
-alim42 %>%
-  group_by(codeCommuneEtablissement, libelleCommuneEtablissement, Type, TypeAbreg) %>%
+onlyonecommerce <- group_by(alim42, codeCommuneEtablissement, libelleCommuneEtablissement) %>%
   summarise(nb_commerces_alim=n()) %>%
   filter(nb_commerces_alim==1)
 ```
+
+Les communes ne comptant qu'un seul commerce "alimentaire" sont au nombre de `r length(onlyonecommerce$codeCommuneEtablissement)`. Avec en détail :
+`r onlyonecommerce$libelleCommuneEtablissement`
+
+```{r}
+typeonecommerce <- filter(alim42, codeCommuneEtablissement %in% onlyonecommerce$codeCommuneEtablissement) %>%
+  group_by(Type) %>%
+  summarise(nb_types=n()) %>%
+  arrange(desc(nb_types)) %>%
+  filter(nb_types == max(nb_types))
+```
+Lorsqu'il y a un seul commerce alimentaire dans une commune, celui-ci est de type `r typeonecommerce$Type`.
+
 Quelles communes de plus de 100 commerces comptent au moins 10 commerces de type “viande”?
+```{r}
+data42 <- inner_join(data42, APE_Type, by="Code")
+```
+
+```{r}
+morethan100commerces <- group_by(data42, codeCommuneEtablissement, libelleCommuneEtablissement, Type) %>%
+  summarise(nb_commerces=n()) #%>%
+  #filter(nb_commerces>=100)
+```
