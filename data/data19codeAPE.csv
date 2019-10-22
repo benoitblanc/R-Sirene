@@ -1,0 +1,20 @@
+Code;Libellé;Label
+1013B;Charcuterie;Charcut
+1071B;Cuisson de produits de boulangerie;Boulang
+1071C;Boulangerie et boulangerie-pâtisserie;BoulPatiss
+1071D;Pâtisserie;Patiss
+4711A;Commerce de détail de produits surgelés;Surgel
+4711B;Commerce d'alimentation générale;Gene
+4711C;Supérettes;Superette
+4711D;Supermarchés;Supermarche
+4711E;Magasins multi-commerces;Multicommerce
+4711F;Hypermarchés;Hypermarche
+4721Z;Commerce de détail de fruits et légumes en magasin spécialisé;FruitsLeg
+4722Z;Comm. détail viandes & produits à base de viande (magas. spéc.);Viande
+4723Z;Comm. détail poissons crustacés & mollusques (magas. spéc.);Poisson
+4724Z;Comm. détail pain pâtisserie & confiserie (magas. spéc.) ;BoulPatissConfis
+4725Z;Commerce de détail de boissons en magasin spécialisé;Boissons
+4729Z;Autres commerces de détail alimentaires en magasin spécialisé;Autres
+4781Z;Commerce de détail alimentaire sur éventaires et marchés;Marches
+5610C;Restauration de type rapide;RestauRapide
+5621Z;Service des traiteurs;Traiteur

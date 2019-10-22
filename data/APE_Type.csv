@@ -1,0 +1,15 @@
+Code,Type,TypeAbreg
+10.1,Transformation et conservation de la viande et préparation de produits à base de viande,viande
+10.2,"Transformation et conservation de poisson, de crustacés et de mollusques",poisson
+10.3,Transformation et conservation de fruits et légumes,fruitsleg
+10.4,Fabrication d'huiles et graisses végétales et animales,huile
+10.5,Fabrication de produits laitiers,laitier
+10.6,"Travail des grains , fabrication de produits amylacés",grain
+10.7,Fabrication de produits de boulangerie-pâtisserie et de pâtes alimentaires,boulPatiss
+10.8,Fabrication d'autres produits alimentaires,autres
+11,Fabrication de boissons,boissons
+47.1,Commerce de détail alimentaire en magasin non spécialisé,supermarche
+47.2,Commerce de détail alimentaire en magasin spécialisé,magasinSpecialise
+56.1,Restaurants et services de restauration mobile,restau
+56.2,Traiteurs et autres services de restauration,traiteur
+56.3,Débits de boissons,bar

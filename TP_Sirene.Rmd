@@ -1,0 +1,119 @@
+---
+title: "TP_Sirene"
+author: "Benoît Blanc"
+date: "10/10/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# Mise en place
+
+```{r, include=TRUE, echo=FALSE}
+knitr::include_graphics("workflow.png")
+```
+
+## Installations, téléchargements, premiers tests sur le département 42
+Téléchargez les données du département 42, geo_siret_42.csv dans ce répertoire et dézippez le dossier sur votre machine.
+
+Téléchargez la table qui renseigne les codes correspondant à l’Activité Principale de l’Etablissement (APE)APE_Type.csv
+
+```{r}
+library(dplyr)
+library(readr)
+```
+
+## Lecture de tableaux de données
+Depuis RStudio, créez un projet qui comprendra l’ensemble des données et documents nécessaires à réaliser l’ensemble des traitements qui vous seront demandés pour ce TP.
+
+Créez le data.frame data42 en lisant la table geo-siret_42.csv.
+```{r, include=TRUE}
+data42 <- read.csv("data/geo_siret_42.csv")
+```
+Créez l’objet APE_Type en lisant le fichier relatif aux codes d’APE.
+```{r, include=TRUE}
+APE_Type <- read.csv("data/APE_Type.csv")
+```
+
+## Code et types d’activités => commerces alimentaires
+```{r}
+library(stringr)
+```
+Combien d’entreprises ont un nom (enseigne1Etablissement) qui comprend le terme “BOULANGERIE”?
+```{r}
+boulangeries <- filter(data42, str_detect(enseigne1Etablissement, "BOULANGERIE"))
+```
+Il y a `r summarise(boulangeries, n())` entreprises qui comprennent le terme "BOULANGERIE" dans leur nom.
+
+Ajoutez une variable Code à votre table en ne conservant que les quatre premiers caractères de la variable activitePrincipaleEtablissement (cela correspond à un pattern “^….”, à savoir le début de chaîne de caractère suivi de quatre caractères quelconques -cf ce billet de blog sur les expressions régulières-).
+
+```{r}
+data42 <- mutate(data42, Code=as.numeric(str_extract(activitePrincipaleEtablissement, "^....")))
+```
+
+Filtrez les lignes de data42 pour ne retenir que celles pour lesquelles l’APE correspond aux commerces “alimentaires” -alimentation, boisson, restaurant, bar- (voir la liste contenue dans le fichier APE_Type).
+
+Stockez le résultat de ces opérations dans un objet alim42.
+
+```{r, echo=FALSE, include=FALSE}
+print(APE_Type)
+```
+
+```{r}
+alim42 <- filter(data42, Code=="47.1" | Code=="47.2" | Code=="56.1" | Code=="56.2" | Code=="56.3")
+```
+
+Réalisez une jointure entre data42_alim (variable codeAPE) et APE_Type (variable Code), de manière à compléter alim42 avec les types de commerces (variables Type et TypeAbreg).
+
+```{r}
+alim42 <- left_join(alim42, APE_Type, by="Code")
+```
+
+## Résumé, classement
+Quelles sont les 3 communes de votre base de données qui comptent le plus de magasins alimentaires?
+
+```{r, include=FALSE}
+alim42 %>% 
+  group_by(codeCommuneEtablissement, libelleCommuneEtablissement) %>%
+  summarise(nb_commerces_alim=n()) %>%
+  arrange(desc(nb_commerces_alim))
+```
+Les trois communes comptant le plus de commerces alimentaires sont 
+```{r}
+alim42 %>%
+  group_by(codeCommuneEtablissement, libelleCommuneEtablissement) %>%
+  summarise(nb_commerces_alim=n()) %>%
+  arrange(desc(nb_commerces_alim)) %>%
+  head(3)
+```
+
+Pour les communes qui ne comptent qu’un seul commerce “alimentaire”, de quel type est-il, le plus fréquemment?
+```{r}
+alim42 %>%
+  group_by(codeCommuneEtablissement, libelleCommuneEtablissement, Type, TypeAbreg) %>%
+  summarise(nb_commerces_alim=n()) %>%
+  filter(nb_commerces_alim==1)
+```
+Quelles communes de plus de 100 commerces comptent au moins 10 commerces de type “viande”?
