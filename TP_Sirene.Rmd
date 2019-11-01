@@ -308,3 +308,73 @@ communes_15pct_bar <- filter(alimRA_typeCom, TypeAbreg=='bar' & nInCom >= 100 & 
 ```
 
 Les communes comptant plus de 100 commerces, dont les commerces de type 'bar' représentent au moins 15% sont `r communes_15pct_bar$libelleCommuneEtablissement`
+
+## Graphique
+Réalisez un graphique montrant les proportions des différents types de commerces pour LYON 4EME et LYON 8EME.
+```{r}
+library(ggplot2)
+```
+
+```{r}
+lyon4 <- filter(alimRA_typeCom, codeCommuneEtablissement == 69384)
+propLyon4 <- ggplot(lyon4, aes(x="", y=propInTypeCom, fill=TypeAbreg))+
+  geom_bar(width = 1, stat = "identity") + geom_text(aes(label=paste(TypeAbreg,"\n",propInTypeCom, "%")), 
+                                                     position = position_stack(vjust = 0.5)) + coord_polar("y") +
+  ggtitle("Répartition des types de commerces à Lyon 4ème") + labs(fill = "Type de commerce") + theme_void()
+propLyon4
+```
+
+```{r}
+lyon8 <- filter(alimRA_typeCom, codeCommuneEtablissement == 69388)
+propLyon8 <- ggplot(lyon8, aes(x="", y=propInTypeCom, fill=TypeAbreg)) +
+  geom_bar(width = 1, stat = "identity") + geom_text(aes(label=paste(TypeAbreg,"\n",propInTypeCom, "%")), 
+                                                     position = position_stack(vjust = 0.5)) + coord_polar("y") +
+  ggtitle("Répartition des types de commerces à Lyon 8ème") + labs(fill = "Type de commerce") + theme_void()
+propLyon8
+```
+
+# Evolution dans le temps des créations d’entreprise
+```{r, include=TRUE, echo=FALSE}
+knitr::include_graphics("workflow_temps.png")
+```
+
+## Manipuler des dates avec lubridate
+Nous allons nous intéresser aux dates de création des entreprises de notre base alimRA_entr (variable dateCreationEtablissement).
+
+🗯 Pour le moment, dateCreationEtablissement est considéré comme une variable de type “chaîne de caractères”. Pour faire comprendre à R qu’il s’agit en réalité d’une date (et lui faire comprendre comment elle est mise en forme) nous allons faire appel au package lubridate.
+
+- Installez et chargez le package lubridate.
+```{r}
+library(lubridate)
+```
+
+- Transformez le tableau alimRA_entr en modifiant la classe de dateCreationEtablissement à l’aide d’une fonction de lubridate.
+```{r}
+alimRA_entr <- mutate(alimRA_entr, dateCreationEtablissement = ymd(dateCreationEtablissement))
+```
+
+- Ajoutez une variable annee au tableau alimRA_entr à l’aide, à nouveau, d’une des fonctions de lubridate.
+```{r}
+alimRA_entr <- mutate(alimRA_entr, annee = year(dateCreationEtablissement))
+```
+
+## Résumé, filtre
+- Créez une table alimRA_typeAn qui recense le nombre d’entreprises par année (nInAn), et par type*année (nInTypeAn).
+```{r}
+alimRA_annee <- group_by(alimRA_entr, annee)%>%
+  summarise(nInAn=n())
+alimRA_type_annee <- group_by(alimRA_entr, annee, TypeAbreg)%>%
+  summarise(nInTypeAn=n())
+alimRA_typeAn <- left_join(alimRA_type_annee, alimRA_annee, 
+                                       by=c("annee"))
+```
+
+- Filtrez les données de alimRA_typeAn pour ne garder que les entreprises dont la création correspond aux années >=1970.
+```{r}
+alimRA_ap1970 <- filter(alimRA_typeAn, annee >= 1970)
+```
+
+## Graphiques: évolution du nombre d’entreprises au cours du temps
+- Installez et chargez le package ggplot2
+- Réalisez un graphique représentant l’évolution des proportions d’entreprises (par type) par année.
+- Réalisez ce même graphique, mais en représentant le nombre de créations d’entreprises par année et par type, pour les 5 types comptant le plus de créations d’entreprises (au total).
