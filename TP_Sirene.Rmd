@@ -3,12 +3,16 @@ title: "TP_Sirene"
 author: "Benoît Blanc"
 date: "10/10/2019"
 output:
-  pdf_document: default
+  pdf_document: 
+    latex_engine: xelatex
   html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+#knitr::opts_chunk$set(echo = TRUE)
+
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60),  # For code
+                      width = 60)  # For output
 ```
 
 ## R Markdown
@@ -52,11 +56,11 @@ Depuis RStudio, créez un projet qui comprendra l’ensemble des données et doc
 
 Créez le data.frame data42 en lisant la table geo-siret_42.csv.
 ```{r, include=TRUE}
-data42 <- read.csv("data/geo_siret_42.csv")
+data42 <- read.csv("data/geo_siret_42.csv", header = TRUE)
 ```
 Créez l’objet APE_Type en lisant le fichier relatif aux codes d’APE.
 ```{r, include=TRUE}
-APE_Type <- read.csv("data/APE_Type.csv")
+APE_Type <- read.csv("data/APE_Type.csv", header = TRUE)
 ```
 
 ## Code et types d’activités => commerces alimentaires
@@ -201,7 +205,7 @@ get_clean_data <- function(dept) {
   filename <- "data/geo_siret_XX.csv"
   filename <- str_replace(filename, "X{2}", dept)
   print(filename)
-  data <- read.csv(filename)
+  data <- read.csv(filename, header = TRUE)
   data <- mutate(data, Code=as.numeric(str_extract(activitePrincipaleEtablissement, "^....")))
   alim <- filter(data, Code=="47.1" | Code=="47.2" | Code=="56.1" | Code=="56.2" | Code=="56.3")
   alim <- left_join(alim, APE_Type, by="Code")
@@ -212,14 +216,95 @@ get_clean_data <- function(dept) {
 
 ## Itération
 
+Appelez cette fonction de manière itérative pour chacun des départements cités ci-dessus. Vous pouvez pour ce faire soit écrire une boucle for, soit utiliser la fonction map() du package purrr.
+
 ```{r}
-departements <- list("01", "38", "42", "43", "69")
-commercesRA <- map(departements, get_clean_data)
+if (!file.exists("data/alimRA_entr.csv")) {
+  departements <- list("01", "38", "42", "43", "69")
+  commercesRA <- map(departements, get_clean_data)  
+} else {
+  alimRA_entr <- read.csv("data/alimRA_entr.csv", header = TRUE)
+}
+```
+
+A partir des 5 jeux de données obtenus vous créerez un seul et même jeu de données alimRA_entr (données pour l’ancienne région Rhône-Alpes, où 1 ligne=1 entreprise).
+
+🗯 Vous pourrez si vous le souhaitez vous servir de la commande do.call("rbind",...) ou bind_rows().
+
+```{r}
+if (!file.exists("data/alimRA_entr.csv")) {
+  #alimRA_entr <- bind_rows(commercesRA)
+  alimRA_entr <- do.call("rbind", commercesRA)
+}
+```
+
+Rajoutez une variable departement (correspondant au numéro de département) à votre jeu de données alimRA_entr. Peut-être par des manipulations sur le code postal?…
+
+```{r}
+if (!file.exists("data/alimRA_entr.csv")) {
+  alimRA_entr <- mutate(alimRA_entr, codePostalEtablissement= as.character(codePostalEtablissement))
+  alimRA_entr <- mutate(alimRA_entr, codePostalEtablissement=gsub("^([0-9]{1,4})", "0\\1", as.character(codePostalEtablissement)))
+  alimRA_entr <- mutate(alimRA_entr, departement=str_extract(codePostalEtablissement, "^.{2}"))
+}
+```
+
+## If et écriture de fichier
+
+Vous avez dû remarquer que l’exécution de l’étape précédente prenait un peu de temps car les 5 fichiers geo-sirene lus sont très volumineux… En revanche la table alimRA_entr est de taille beaucoup plus raisonnable. Or, nous n’aurons besoin que de cette table pour la suite du projet. Pour éviter d’exécuter cette étape chronophage à chaque fois que vous travaillerez sur ce projet:
+
+- exportez alimRA_entr dans un fichier alimRA_entr.csv.
+- entourez la boucle for d’une structure conditionnelle if de sorte que la boucle ne soit exécutée que si le fichier alimRA_entr.csv n’existe pas (voir fonction file.exists()…)
+- écrivez à la suite la commande qui servira à lire alimRA_entr.csv à chaque “tricotage” de votre rapport Rmarkdown.
+
+```{r}
+write.csv(alimRA_entr, "data/alimRA_entr.csv", row.names = FALSE, quote = TRUE)
+alimRA_entr <- read.csv("data/alimRA_entr.csv", header = TRUE)
+```
+
+# Résumé par commune et type de commerce
+```{r, include=TRUE, echo=FALSE}
+knitr::include_graphics("workflow_resume.png")
+```
+
+## Agrégation des données par commune et type de commerce
+Agrégez la table alimRA_entr par commune et type de commerce, pour créer une table alimRA_typeCom (où une ligne correspondra à un type de commerce pour une commune):
+
+```{r eval=FALSE, include=FALSE}
+get_nb_commerces_by_commune <- function(df) {
+  df <- group_by(df, codeCommuneEtablissement, libelleCommuneEtablissement) %>%
+    summarise(nb_commerces=n())
+  return(df$nb_commerces)
+}
+get_nb_commerces_by_type_by_commune <- function(df) {
+  
+  
+  return(alim)
+}
+get_proportion_type_in_commune {
+<- function(df)   
+}return(0)
 ```
 
 ```{r}
-#alimRA_entr <- bind_rows(commercesRA)
-alimRA_entr <- do.call("rbind", commercesRA)
-alimRA_entr <- mutate(alimRA_entr, codePostalEtablissement=gsub("^([0-9]{1,4})($)", "0\\1\\2",codePostalEtablissement))
-alimRA_entr <- mutate(alimRA_entr, departement=str_subset(codePostalEtablissement, "^[0-9]{2}"))
+alimRA_Com <- group_by(alimRA_entr, codeCommuneEtablissement, libelleCommuneEtablissement)%>%
+  summarise(nInCom=n())
+alimRA_type <- group_by(alimRA_entr, codeCommuneEtablissement, libelleCommuneEtablissement, TypeAbreg)%>%
+  summarise(nInTypeCom=n()) %>%
+  mutate(propInTypeCom = round(nInTypeCom / sum(nInTypeCom)*100))
 ```
+
+- une variable nInCom correspondant au nombre de commerces par commune
+- une variable nInTypeCom correspondant au nombre de commerces par type et commune
+- une variable propInTypeCom correspondant à la proportion d’un type de commerce dans une commune
+
+```{r}
+alimRA_typeCom <- left_join(alimRA_Com, alimRA_type, 
+                                       by=c("codeCommuneEtablissement", "libelleCommuneEtablissement"))
+```
+
+Quelles communes comptant plus de 100 commerces comptent au moins 15% de commerces de type “bar”?
+```{r}
+communes_15pct_bar <- filter(alimRA_typeCom, TypeAbreg=='bar' & nInCom >= 100 & propInTypeCom >= 15)
+```
+
+Les communes comptant plus de 100 commerces, dont les commerces de type 'bar' représentent au moins 15% sont `r communes_15pct_bar$libelleCommuneEtablissement`
