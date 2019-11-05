@@ -98,6 +98,27 @@ alim42 <- left_join(alim42, APE_Type, by="Code")
 ```
 
 ## Résumé, classement
+
+On crée une fonction pour charger le SHP d'un département pour visualiser les prochains résultats sur une carte
+```{r}
+library(ggplot2)
+library(sf)
+load_SHP_dept <- function(dept) {
+  filename <- "data/GEOFLA_XX.shp"
+  filename <- str_replace(filename, "X{2}", dept)
+  dept_shp <- st_read(filename,
+                      stringsAsFactors = FALSE)
+  st_crs(dept_shp)<-2154  # on définit la projection Lambert93
+  return(dept_shp)
+}
+```
+
+On charge le SHP de la Loire
+```{r}
+dept42_SHP <- load_SHP_dept("42")
+plot(dept42_SHP$geometry)
+```
+
 Quelles sont les 3 communes de votre base de données qui comptent le plus de magasins alimentaires?
 
 ```{r, include=FALSE}
@@ -108,7 +129,7 @@ alim42 %>%
 ```
 Les trois communes comptant le plus de commerces alimentaires sont 
 ```{r}
-alim42 %>%
+morecommerces <- alim42 %>%
   group_by(codeCommuneEtablissement, libelleCommuneEtablissement) %>%
   summarise(nb_commerces_alim=n()) %>%
   arrange(desc(nb_commerces_alim)) %>%
@@ -195,6 +216,7 @@ Certaines chaînes de caractère sont interprétées comme des chaînes de carac
 
 ```{r}
 library(purrr)
+departements <- list("01", "38", "42", "43", "69")
 ```
 
 ```{r}
@@ -220,8 +242,7 @@ Appelez cette fonction de manière itérative pour chacun des départements cit�
 
 ```{r}
 if (!file.exists("data/alimRA_entr.csv")) {
-  departements <- list("01", "38", "42", "43", "69")
-  commercesRA <- map(departements, get_clean_data)  
+  commercesRA <- map(departements, get_clean_data)
 } else {
   alimRA_entr <- read.csv("data/alimRA_entr.csv", header = TRUE)
 }
@@ -311,9 +332,6 @@ Les communes comptant plus de 100 commerces, dont les commerces de type 'bar' re
 
 ## Graphique
 Réalisez un graphique montrant les proportions des différents types de commerces pour LYON 4EME et LYON 8EME.
-```{r}
-library(ggplot2)
-```
 
 ```{r}
 lyon4 <- filter(alimRA_typeCom, codeCommuneEtablissement == 69384)
