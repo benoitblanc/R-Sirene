@@ -56,11 +56,11 @@ Depuis RStudio, créez un projet qui comprendra l’ensemble des données et doc
 
 Créez le data.frame data42 en lisant la table geo-siret_42.csv.
 ```{r, include=TRUE}
-data42 <- read.csv("data/geo_siret_42.csv", header = TRUE)
+data42 <- read_csv("data/geo_siret_42.csv")
 ```
 Créez l’objet APE_Type en lisant le fichier relatif aux codes d’APE.
 ```{r, include=TRUE}
-APE_Type <- read.csv("data/APE_Type.csv", header = TRUE)
+APE_Type <- read_csv("data/APE_Type.csv")
 ```
 
 ## Code et types d’activités => commerces alimentaires
@@ -227,12 +227,19 @@ get_clean_data <- function(dept) {
   filename <- "data/geo_siret_XX.csv"
   filename <- str_replace(filename, "X{2}", dept)
   print(filename)
-  data <- read.csv(filename, header = TRUE)
+  data <- read_csv(filename)
   data <- mutate(data, Code=as.numeric(str_extract(activitePrincipaleEtablissement, "^....")))
   alim <- filter(data, Code=="47.1" | Code=="47.2" | Code=="56.1" | Code=="56.2" | Code=="56.3")
   alim <- left_join(alim, APE_Type, by="Code")
   
   return(alim)
+}
+```
+
+```{r}
+convert_to_str <- function(param) {
+  str_param = as.character(param)
+  return(str_param)
 }
 ```
 
@@ -242,9 +249,10 @@ Appelez cette fonction de manière itérative pour chacun des départements cit�
 
 ```{r}
 if (!file.exists("data/alimRA_entr.csv")) {
-  commercesRA <- map(departements, get_clean_data)
+  commercesRA <- departements %>% map(get_clean_data)
+  #commercesRA <- mutate(commercesRA, codePostalEtablissement=convert_to_str(codePostalEtablissement))
 } else {
-  alimRA_entr <- read.csv("data/alimRA_entr.csv", header = TRUE)
+  alimRA_entr <- read_csv("data/alimRA_entr.csv")
 }
 ```
 
@@ -278,8 +286,9 @@ Vous avez dû remarquer que l’exécution de l’étape précédente prenait un
 - écrivez à la suite la commande qui servira à lire alimRA_entr.csv à chaque “tricotage” de votre rapport Rmarkdown.
 
 ```{r}
-write.csv(alimRA_entr, "data/alimRA_entr.csv", row.names = FALSE, quote = TRUE)
-alimRA_entr <- read.csv("data/alimRA_entr.csv", header = TRUE)
+write_csv(alimRA_entr, "data/alimRA_entr.csv", row.names = FALSE, quote = TRUE)
+alimRA_entr <- read_csv("data/alimRA_entr.csv")
+alimRA_entr <- map(., mutate(., codePostalEtablissement=convert_code_postal(codePostalEtablissement)))
 ```
 
 # Résumé par commune et type de commerce
