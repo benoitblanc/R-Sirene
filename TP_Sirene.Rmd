@@ -68,7 +68,7 @@ APE_Type <- read_csv("data/APE_Type.csv")
 library(stringr)
 ```
 Combien d’entreprises ont un nom (enseigne1Etablissement) qui comprend le terme “BOULANGERIE”?
-```{r}
+```{r include=FALSE}
 boulangeries <- filter(data42, str_detect(enseigne1Etablissement, "BOULANGERIE"))
 ```
 Il y a `r summarise(boulangeries, n())` entreprises qui comprennent le terme "BOULANGERIE" dans leur nom.
@@ -127,17 +127,18 @@ alim42 %>%
   summarise(nb_commerces_alim=n()) %>%
   arrange(desc(nb_commerces_alim))
 ```
-Les trois communes comptant le plus de commerces alimentaires sont 
-```{r}
+
+```{r echo=FALSE}
 morecommerces <- alim42 %>%
   group_by(codeCommuneEtablissement, libelleCommuneEtablissement) %>%
   summarise(nb_commerces_alim=n()) %>%
   arrange(desc(nb_commerces_alim)) %>%
   head(3)
 ```
+Les trois communes comptant le plus de commerces alimentaires sont : `r morecommerces$libelleCommuneEtablissement`
 
 Pour les communes qui ne comptent qu’un seul commerce “alimentaire”, de quel type est-il, le plus fréquemment?
-```{r}
+```{r echo=FALSE}
 onlyonecommerce <- group_by(alim42, codeCommuneEtablissement, libelleCommuneEtablissement) %>%
   summarise(nb_commerces_alim=n()) %>%
   filter(nb_commerces_alim==1)
@@ -146,7 +147,7 @@ onlyonecommerce <- group_by(alim42, codeCommuneEtablissement, libelleCommuneEtab
 Les communes ne comptant qu'un seul commerce "alimentaire" sont au nombre de `r length(onlyonecommerce$codeCommuneEtablissement)`. Avec en détail :
 `r onlyonecommerce$libelleCommuneEtablissement`
 
-```{r}
+```{r echo=FALSE}
 typeonecommerce <- filter(alim42, codeCommuneEtablissement 
                           %in% onlyonecommerce$codeCommuneEtablissement) %>%
   group_by(Type) %>%
@@ -192,6 +193,9 @@ A ce stade, votre script commence à être un peu long et (peut-être) un peu d�
 
 Créez un document ____.Rmd, structurez-le avec quelques titres, et répartissez les différents morceaux de code de votre script de manière pertinente dans différents chunks.
 Vous pouvez maintenant rédiger des paragraphes en y intégrant des éléments de réponses aux questions posées précédemment. Rédigez un petit paragraphe pour nommer les 3 communes qui comptent le plus d’entreprises (exercice précédent) en utilisant l’insertion d’“inline chunks”.
+
+Les 3 communes qui ocmptent le plus d'entreprises sont `r morecommerces$libelleCommuneEtablissement`.
+
 A partir de maintenant, votre document de travail sera un document`___.Rmd’ et non le script que vous avez créé initialement…
 
 # Programmation: automatisation pour plusieurs départements
@@ -286,9 +290,9 @@ Vous avez dû remarquer que l’exécution de l’étape précédente prenait un
 - écrivez à la suite la commande qui servira à lire alimRA_entr.csv à chaque “tricotage” de votre rapport Rmarkdown.
 
 ```{r}
-write_csv(alimRA_entr, "data/alimRA_entr.csv", row.names = FALSE, quote = TRUE)
+write_csv(alimRA_entr, "data/alimRA_entr.csv")
 alimRA_entr <- read_csv("data/alimRA_entr.csv")
-alimRA_entr <- map(., mutate(., codePostalEtablissement=convert_code_postal(codePostalEtablissement)))
+#alimRA_entr <- map(., mutate(., codePostalEtablissement=convert_code_postal(codePostalEtablissement)))
 ```
 
 # Résumé par commune et type de commerce
