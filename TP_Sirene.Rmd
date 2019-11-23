@@ -55,7 +55,7 @@ library(readr)
 Depuis RStudio, créez un projet qui comprendra l’ensemble des données et documents nécessaires à réaliser l’ensemble des traitements qui vous seront demandés pour ce TP.
 
 Créez le data.frame data42 en lisant la table geo-siret_42.csv.
-```{r, include=TRUE}
+```{r warning=FALSE, include=TRUE}
 data42 <- read_csv("data/geo_siret_42.csv")
 ```
 Créez l’objet APE_Type en lisant le fichier relatif aux codes d’APE.
@@ -88,7 +88,8 @@ print(APE_Type)
 ```
 
 ```{r}
-alim42 <- filter(data42, Code=="47.1" | Code=="47.2" | Code=="56.1" | Code=="56.2" | Code=="56.3")
+code_alim <- c("10.1", "10.2", "10.3", "10.5", "10.7", "10.8", "11.0", "47.1", "47.2", "56.1", "56.2", "56.3")
+alim42 <- filter(data42, Code %in% code_alim)
 ```
 
 Réalisez une jointure entre data42_alim (variable codeAPE) et APE_Type (variable Code), de manière à compléter alim42 avec les types de commerces (variables Type et TypeAbreg).
@@ -233,7 +234,7 @@ get_clean_data <- function(dept) {
   print(filename)
   data <- read_csv(filename)
   data <- mutate(data, Code=as.numeric(str_extract(activitePrincipaleEtablissement, "^....")))
-  alim <- filter(data, Code=="47.1" | Code=="47.2" | Code=="56.1" | Code=="56.2" | Code=="56.3")
+  alim <- filter(data, Code %in% code_alim)
   alim <- left_join(alim, APE_Type, by="Code")
   
   return(alim)
@@ -276,7 +277,7 @@ Rajoutez une variable departement (correspondant au numéro de département) à 
 ```{r}
 if (!file.exists("data/alimRA_entr.csv")) {
   alimRA_entr <- mutate(alimRA_entr, codePostalEtablissement= as.character(codePostalEtablissement))
-  alimRA_entr <- mutate(alimRA_entr, codePostalEtablissement=gsub("^([0-9]{1,4})", "0\\1", as.character(codePostalEtablissement)))
+  #alimRA_entr <- mutate(alimRA_entr, codePostalEtablissement=gsub("^([0-9]{1,4})", "0\\1", as.character(codePostalEtablissement)))
   alimRA_entr <- mutate(alimRA_entr, departement=str_extract(codePostalEtablissement, "^.{2}"))
 }
 ```
@@ -324,7 +325,7 @@ alimRA_Com <- group_by(alimRA_entr, codeCommuneEtablissement, libelleCommuneEtab
   summarise(nInCom=n())
 alimRA_type <- group_by(alimRA_entr, codeCommuneEtablissement, libelleCommuneEtablissement, TypeAbreg)%>%
   summarise(nInTypeCom=n()) %>%
-  mutate(propInTypeCom = round(nInTypeCom / sum(nInTypeCom)*100))
+  mutate(propInTypeCom = round(nInTypeCom / sum(nInTypeCom)*100, digits = 2))
 ```
 
 - une variable nInCom correspondant au nombre de commerces par commune
@@ -336,12 +337,15 @@ alimRA_typeCom <- left_join(alimRA_Com, alimRA_type,
                                        by=c("codeCommuneEtablissement", "libelleCommuneEtablissement"))
 ```
 
-Quelles communes comptant plus de 100 commerces comptent au moins 15% de commerces de type “bar”?
+Quelles communes comptant plus de 100 commerces comptes au moins 5% de commerces de type “viande”?
 ```{r}
 communes_15pct_bar <- filter(alimRA_typeCom, TypeAbreg=='bar' & nInCom >= 100 & propInTypeCom >= 15)
+communes_5pct_viande <- filter(alimRA_typeCom, TypeAbreg=='viande' & nInCom >= 100 & propInTypeCom >= 5)
 ```
 
-Les communes comptant plus de 100 commerces, dont les commerces de type 'bar' représentent au moins 15% sont `r communes_15pct_bar$libelleCommuneEtablissement`
+Les communes comptant plus de 100 commerces, dont les commerces de type 'bar' représentent au moins 15% des commerces sont `r communes_15pct_bar$libelleCommuneEtablissement`.
+
+Les communes comptant plus de 100 commerces, dont les commerces de type 'viande' représentent au moins 5% des commerces sont `r communes_5pct_viande$libelleCommuneEtablissement`.
 
 ## Graphique
 Réalisez un graphique montrant les proportions des différents types de commerces pour LYON 4EME et LYON 8EME.
@@ -349,18 +353,17 @@ Réalisez un graphique montrant les proportions des différents types de commerc
 ```{r}
 lyon4 <- filter(alimRA_typeCom, codeCommuneEtablissement == 69384)
 propLyon4 <- ggplot(lyon4, aes(x="", y=propInTypeCom, fill=TypeAbreg))+
-  geom_bar(width = 1, stat = "identity") + geom_text(aes(label=paste(TypeAbreg,"\n",propInTypeCom, "%")), 
-                                                     position = position_stack(vjust = 0.5)) + coord_polar("y") +
-  ggtitle("Répartition des types de commerces à Lyon 4ème") + labs(fill = "Type de commerce") + theme_void()
+  geom_bar(width = 2, stat = "identity", position = "dodge") + geom_text(aes(label=paste("\n", propInTypeCom, "%")), position = position_dodge(width = 2)) +
+  ggtitle("Répartition des types de commerces à Lyon 4ème") + scale_fill_discrete(name= "Type de commerce", labels=c("Autre", "Bar", "Boulangerie-Pâtisserie", "Fruits et légumes", "Magasin spécialisé", "Restaurant", "Supermarché", "Traiteur", "Boucherie")) + theme_minimal() + labs(x="", y="Répartition (%)")
 propLyon4
 ```
 
 ```{r}
 lyon8 <- filter(alimRA_typeCom, codeCommuneEtablissement == 69388)
 propLyon8 <- ggplot(lyon8, aes(x="", y=propInTypeCom, fill=TypeAbreg)) +
-  geom_bar(width = 1, stat = "identity") + geom_text(aes(label=paste(TypeAbreg,"\n",propInTypeCom, "%")), 
-                                                     position = position_stack(vjust = 0.5)) + coord_polar("y") +
-  ggtitle("Répartition des types de commerces à Lyon 8ème") + labs(fill = "Type de commerce") + theme_void()
+  geom_bar(width = 5, stat = "identity", position = "dodge") + geom_text(aes(label=paste("\n",propInTypeCom, "%")),
+                                                     position = position_dodge(width = 5)) + 
+  ggtitle("Répartition des types de commerces à Lyon 8ème") + scale_fill_discrete(name= "Type de commerce", labels=c("Autre", "Bar", "Boulangerie-Pâtisserie", "Fruits et légumes", "Magasin spécialisé", "Restaurant", "Supermarché", "Traiteur", "Boucherie")) + theme_minimal() + labs(x="", y="Répartition (%)")
 propLyon8
 ```
 
@@ -408,4 +411,26 @@ alimRA_ap1970 <- filter(alimRA_typeAn, annee >= 1970)
 ## Graphiques: évolution du nombre d’entreprises au cours du temps
 - Installez et chargez le package ggplot2
 - Réalisez un graphique représentant l’évolution des proportions d’entreprises (par type) par année.
+```{r}
+alimRA_ap1970 <- mutate(alimRA_ap1970, propTypeAn = as.numeric(sprintf("%0.2f", nInTypeAn / nInAn * 100)))
+alimRA_ap1970 <- filter(alimRA_ap1970, annee!=2020)
+prop_alimRA_ap1970 <- ggplot(alimRA_ap1970, aes(x=annee, y=propTypeAn, color=TypeAbreg, fill = TypeAbreg)) 
+prop_alimRA_ap1970 +
+  geom_line(size = 1) + 
+  ggtitle("Evolution des proportions d'entreprises par type par année") + scale_color_discrete(name = "Type de commerce", labels=c("Autre", "Bar", "Boulangerie-Pâtisserie", "Fruits et légumes", "Produits laitiers", "Magasin spécialisé", "Poissonnerie", "Restaurant", "Supermarché", "Traiteur", "Boucherie")) + labs(x="Année", y="Taux d'entreprise")+ theme_minimal()
+```
+```{r fig.height=10}
+labels = c(autres = "Autre", bar = "Bar", boulPatiss = "Boulangerie-Pâtisserie", fruitsleg = "Fruits et légumes", laitier = "Produits laitiers", magasinSpecialise = "Magasin spécialisé", poisson = "Poissonnerie", restau = "Restaurant", supermarche = "Supermarché", traiteur = "Traiteur", viande = "Boucherie")
+prop_alimRA_ap1970 + guides(fill = "none") + geom_area(show.legend = FALSE) + facet_wrap(.~TypeAbreg, ncol=1,  scales = "fixed", labeller = labeller(TypeAbreg=labels)) + theme_bw()
+```
+
 - Réalisez ce même graphique, mais en représentant le nombre de créations d’entreprises par année et par type, pour les 5 types comptant le plus de créations d’entreprises (au total).
+```{r}
+alimRA_5types <- group_by(alimRA_ap1970, TypeAbreg) %>% summarise(nb_creations = sum(nInTypeAn)) %>%
+  arrange(desc(nb_creations)) %>% head(5)
+crea_alimRA_5types <- filter(alimRA_ap1970, TypeAbreg %in% alimRA_5types$TypeAbreg)
+nb_creations_alimRA_ap1970 <- ggplot(crea_alimRA_5types, aes(x=annee, y=nInTypeAn, color=TypeAbreg, fill = TypeAbreg)) 
+nb_creations_alimRA_ap1970 +
+  geom_line(size = 1) + 
+  ggtitle("Nombre de créations d'entreprises par type par année") + scale_color_discrete(name = "Type de commerce", labels = c("Bar", "Boulangerie-Pâtisserie", "Magasin spécialisé", "Restaurant", "Supermarché")) + labs(x="Année", y="Nombre de créations d'entreprises")+ theme_minimal()
+```
