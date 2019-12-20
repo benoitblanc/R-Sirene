@@ -49,6 +49,8 @@ Téléchargez la table qui renseigne les codes correspondant à l’Activité Pr
 ```{r}
 library(dplyr)
 library(readr)
+library(tidyr)
+library(ggplot2)
 ```
 
 ## Lecture de tableaux de données
@@ -99,26 +101,6 @@ alim42 <- left_join(alim42, APE_Type, by="Code")
 ```
 
 ## Résumé, classement
-
-On crée une fonction pour charger le SHP d'un département pour visualiser les prochains résultats sur une carte
-```{r}
-library(ggplot2)
-library(sf)
-load_SHP_dept <- function(dept) {
-  filename <- "data/GEOFLA_XX.shp"
-  filename <- str_replace(filename, "X{2}", dept)
-  dept_shp <- st_read(filename,
-                      stringsAsFactors = FALSE)
-  st_crs(dept_shp)<-2154  # on définit la projection Lambert93
-  return(dept_shp)
-}
-```
-
-On charge le SHP de la Loire
-```{r}
-dept42_SHP <- load_SHP_dept("42")
-plot(dept42_SHP$geometry)
-```
 
 Quelles sont les 3 communes de votre base de données qui comptent le plus de magasins alimentaires?
 
@@ -385,6 +367,7 @@ library(lubridate)
 - Transformez le tableau alimRA_entr en modifiant la classe de dateCreationEtablissement à l’aide d’une fonction de lubridate.
 ```{r}
 alimRA_entr <- mutate(alimRA_entr, dateCreationEtablissement = ymd(dateCreationEtablissement))
+class(alimRA_entr$dateCreationEtablissement)
 ```
 
 - Ajoutez une variable annee au tableau alimRA_entr à l’aide, à nouveau, d’une des fonctions de lubridate.
@@ -434,3 +417,51 @@ nb_creations_alimRA_ap1970 +
   geom_line(size = 1) + 
   ggtitle("Nombre de créations d'entreprises par type par année") + scale_color_discrete(name = "Type de commerce", labels = c("Bar", "Boulangerie-Pâtisserie", "Magasin spécialisé", "Restaurant", "Supermarché")) + labs(x="Année", y="Nombre de créations d'entreprises")+ theme_minimal()
 ```
+
+# Cartes
+
+```{r, include=TRUE, echo=FALSE}
+knitr::include_graphics("workflow_cartes.png")
+library(sf)
+```
+
+## Carte des boulangeries-pâtisseries
+Repartez de la table alim_entr pour en faire un objet de classe “sf”. Vous vous servirez pour cela des colonnes “longitude” et “latitude” et exclurez les entreprises pour lesquelles ces colonnes ne sont pas renseignées.
+
+```{r}
+sf_alimRA_entr <- drop_na(alimRA_entr, c("longitude", "latitude")) %>% 
+  st_as_sf(coords = c("longitude", "latitude"), na.fail = FALSE, crs = 4326)
+#plot(sf_alimRA_entr)
+```
+
+Réalisez une carte montrant le semis de points correspondant aux boulangeries-pâtisseries.
+
+```{r}
+sf_boulPatissRA_entr <- filter(sf_alimRA_entr, TypeAbreg == 'boulPatiss')
+
+
+
+ggplot(sf_boulPatissRA_entr) +
+  geom_sf(data = sf_boulPatissRA_entr, aes(color = annee)) +
+  scale_color_distiller("Année de création", palette = "Spectral")
+```
+
+Essayez de représenter à travers cette carte l’année de création de l’entreprise (de la manière qui vous semblera la plus pertinente).
+
+On crée une fonction pour charger le SHP d'un département pour visualiser les prochains résultats sur une carte
+```{r}
+load_SHP_dept <- function(dept) {
+  filename <- "data/GEOFLA_XX.shp"
+  filename <- str_replace(filename, "X{2}", dept)
+  dept_shp <- st_read(filename,
+                      stringsAsFactors = FALSE)
+  st_crs(dept_shp)<-2154  # on définit la projection Lambert93
+  return(dept_shp)
+}
+```
+
+#On charge le SHP de la Loire
+#```{r}
+#dept42_SHP <- load_SHP_dept("42")
+#plot(dept42_SHP$geometry)
+#```
