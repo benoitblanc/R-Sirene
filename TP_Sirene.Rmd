@@ -2,12 +2,15 @@
 title: "TP Sirene"
 author: "Benoît Blanc"
 date: "`r format(Sys.time(), '%d/%m/%Y')`"
+always_allow_html: true
 output:
-  prettydoc::html_pretty:
+  rmdformats::readthedown:
     includes:
       in_header: header.html
-    highlight: github # github vignette
-    theme: architect # cayman tactile architect leonids hpstr
+    code_folding: hide
+    self_contained: true
+    thumbnails: false
+    lightbox: false
   html_document:
     includes:
       in_header: header.html
@@ -19,19 +22,17 @@ output:
     toc: TRUE
     toc_depth: 2
     toc_float: TRUE
-  rmdformats::readthedown:
-    includes:
-      in_header: header.html
-    code_folding: hide
-    self_contained: true
-    thumbnails: false
-    lightbox: false
   pdf_document:
     highlight: zenburn #“default”, “tango”, “pygments”, “kate”, “monochrome”, “espresso”, “zenburn”, “haddock”, “breezedark”
     latex_engine: xelatex
     number_sections: yes
     toc: yes
     toc_depth: 2
+  prettydoc::html_pretty:
+    includes:
+      in_header: header.html
+    highlight: github # github vignette
+    theme: architect # cayman tactile architect leonids hpstr
 ---
 
 ```{r setup, include=FALSE}
@@ -51,7 +52,7 @@ Ce TP consiste à travailler sur des données de la base Sirene de l’INSEE, mi
 \newpage
 # Mise en place
 
-```{r echo=FALSE, out.width="300pt"}
+```{r echo=FALSE, out.width="400pt"}
 knitr::include_graphics("workflow.png")
 ```
 
@@ -211,7 +212,7 @@ A partir de maintenant, votre document de travail sera un document`___.Rmd’ et
 \newpage
 # Programmation: automatisation pour plusieurs départements
 
-```{r echo=FALSE, out.width="300pt"}
+```{r echo=FALSE, out.width="400pt"}
 knitr::include_graphics("workflow_prog.png")
 ```
 
@@ -310,7 +311,7 @@ alimRA_entr <- read_csv("data/alimRA_entr.csv")
 \newpage
 # Résumé par commune et type de commerce
 
-```{r, include=TRUE, echo=FALSE, out.width="300pt"}
+```{r, include=TRUE, echo=FALSE, out.width="400pt"}
 knitr::include_graphics("workflow_resume.png")
 ```
 
@@ -385,7 +386,7 @@ propLyon8
 \newpage
 # Evolution dans le temps des créations d’entreprise
 
-```{r, include=TRUE, echo=FALSE, out.width="300pt"}
+```{r, include=TRUE, echo=FALSE, out.width="400pt"}
 knitr::include_graphics("workflow_temps.png")
 ```
 
@@ -434,16 +435,19 @@ alimRA_ap1970 <- filter(alimRA_typeAn, annee >= 1970)
 ```{r echo=FALSE}
 alimRA_ap1970 <- mutate(alimRA_ap1970, propTypeAn = as.numeric(sprintf("%0.2f", nInTypeAn / nInAn * 100)))
 alimRA_ap1970 <- filter(alimRA_ap1970, annee!=2020)
-prop_alimRA_ap1970 <- ggplot(alimRA_ap1970, aes(x=annee, y=propTypeAn, color=TypeAbreg, fill = TypeAbreg)) 
-prop_alimRA_ap1970 +
+prop_alimRA_ap1970 <- ggplot(alimRA_ap1970, aes(x=annee, y=propTypeAn, color=TypeAbreg)) 
+prop_alimRA_ap1970_1 <- prop_alimRA_ap1970 + 
   geom_line(size = 1) + 
   ggtitle("Evolution des proportions d'entreprises par type par année") + scale_color_discrete(name = "Type de commerce", labels=c("Autre", "Bar", "Boulangerie-Pâtisserie", "Fruits et légumes", "Produits laitiers", "Magasin spécialisé", "Poissonnerie", "Restaurant", "Supermarché", "Traiteur", "Boucherie")) + labs(x="Année", y="Taux d'entreprise") + theme_minimal()
+prop_alimRA_ap1970_1
 ```
 
 On peut aussi séparer les types de commerce et créer une grille avec un graphique pour chaque type :
 ```{r echo=FALSE, fig.height=10}
 labels = c(autres = "Autre", bar = "Bar", boulPatiss = "Boulangerie-Pâtisserie", fruitsleg = "Fruits et légumes", laitier = "Produits laitiers", magasinSpecialise = "Magasin spécialisé", poisson = "Poissonnerie", restau = "Restaurant", supermarche = "Supermarché", traiteur = "Traiteur", viande = "Boucherie")
-prop_alimRA_ap1970 + guides(fill = "none") + geom_area(show.legend = FALSE) + facet_wrap(.~TypeAbreg, ncol=1,  scales = "fixed", labeller = labeller(TypeAbreg=labels)) + labs(x="Année", y="Taux d'entreprise") + theme_bw()
+prop_alimRA_ap1970 <- ggplot(alimRA_ap1970, aes(x=annee, y=propTypeAn, fill = TypeAbreg))
+prop_alimRA_ap1970_2 <- prop_alimRA_ap1970 + guides(fill = "none") + geom_area(show.legend = FALSE) + facet_wrap(.~TypeAbreg, ncol=1,  scales = "fixed", labeller = labeller(TypeAbreg=labels)) + labs(x="Année", y="Taux d'entreprise") + theme_bw()
+prop_alimRA_ap1970_2 
 ```
 
 - Réalisez ce même graphique, mais en représentant le nombre de créations d’entreprises par année et par type, pour les 5 types comptant le plus de créations d’entreprises (au total).
@@ -452,17 +456,17 @@ prop_alimRA_ap1970 + guides(fill = "none") + geom_area(show.legend = FALSE) + fa
 alimRA_5types <- group_by(alimRA_ap1970, TypeAbreg) %>% summarise(nb_creations = sum(nInTypeAn)) %>%
   arrange(desc(nb_creations)) %>% head(5)
 crea_alimRA_5types <- filter(alimRA_ap1970, TypeAbreg %in% alimRA_5types$TypeAbreg)
-nb_creations_alimRA_ap1970 <- ggplot(crea_alimRA_5types, aes(x=annee, y=nInTypeAn, color=TypeAbreg, fill = TypeAbreg)) 
-nb_creations_alimRA_ap1970 +
+nb_creations_alimRA_ap1970 <- ggplot(crea_alimRA_5types, aes(x=annee, y=nInTypeAn, color=TypeAbreg)) +
   geom_line(size = 1) + 
   ggtitle("Nombre de créations d'entreprises par type par année") + scale_color_discrete(name = "Type de commerce", labels = c("Bar", "Boulangerie-Pâtisserie", "Magasin spécialisé", "Restaurant", "Supermarché")) + labs(x="Année", y="Nombre de créations d'entreprises")+ theme_minimal()
+nb_creations_alimRA_ap1970
 ```
 
 ***
 \newpage
 # Cartes
 
-```{r, include=TRUE, echo=FALSE, out.width="300pt"}
+```{r, include=TRUE, echo=FALSE, out.width="400pt"}
 knitr::include_graphics("workflow_cartes.png")
 ```
 
@@ -480,18 +484,20 @@ sf_alimRA_entr <- drop_na(alimRA_entr, c("longitude", "latitude")) %>%
 ```{r echo=FALSE}
 sf_boulPatissRA_entr <- filter(sf_alimRA_entr, TypeAbreg == 'boulPatiss')
 
-ggplot(sf_boulPatissRA_entr) +
+map_boulPatiss <- ggplot(sf_boulPatissRA_entr) +
   geom_sf(data = sf_boulPatissRA_entr) + ggtitle("Boulangeries-Pâtisseries dans les départements de l'étude")
+map_boulPatiss
 ```
 
 - Essayez de représenter à travers cette carte l’année de création de l’entreprise (de la manière qui vous semblera la plus pertinente).
 
 ```{r echo=FALSE}
-ggplot(sf_boulPatissRA_entr) +
+map_boulPatiss_annee <- ggplot(sf_boulPatissRA_entr) +
   geom_sf(data = sf_boulPatissRA_entr, aes(color = annee)) +
   #scale_colour_date(name = "Année de création", date_breaks = "10 years", labels = date_format("%Y")) + 
   ggtitle("Boulangeries-Pâtisseries dans les départements de l'étude et leur année de création") +
   scale_color_distiller("Année de création", palette = "Spectral")
+map_boulPatiss_annee
 ```
 
 ```{r include=FALSE}
@@ -519,31 +525,48 @@ On crée une fonction pour afficher les commerces d'un département
 show_commerces_dept <- function(dept) {
   sf_commerces <- sf_boulPatissRA_entr %>% filter(departement == dept)
   sf_dept <- RA_shp%>% filter(code_depar == dept) %>% group_by(code_depar) %>% summarise(geometry = st_union(geometry))
-  ggplot() +
+  my_map <- ggplot() +
     geom_sf(data = sf_dept) +
     geom_sf(data = sf_commerces, aes(color = dateCreationEtablissement)) +
     ggtitle(paste0("Boulangeries-Pâtisseries du ", dept, " et leur année de création")) +
     theme_dark() +
     scale_colour_date(name = "Année de création", date_breaks = "10 years", labels = date_format("%Y"))
     #scale_color_distiller("Année de création", palette = "Spectral")
+  my_map
+  # if (knitr::opts_knit$get("rmarkdown.pandoc.to") == "pdf_document") {
+  #   my_map
+  # } else {
+  #   maply <- ggplotly(my_map)
+  #   maply
+  # }
 }
 ```
 
 On peut afficher les boulangeries-pâtisseries avec leur année de création, par département :
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
+# L'utilisation de plotly dans les boucles ne semblent pas fonctionner. Il faut passer par une liste et utiliser la fonction tagList
+# Voir https://github.com/ropensci/plotly/issues/570
 map(departements, show_commerces_dept)
+#plotlist = list()
+#for (dept in departements) {
+  #p <- show_commerces_dept(dept)
+  #p
+  #plotlist[[dept]] <- ggplotly(p)
+#}
+#htmltools::tagList(setNames(plotlist, NULL))
 ```
 
 On affiche maintenant les départements de l'étude à partir du fichier SHP récupéré précédemment :
 
 ```{r echo=FALSE}
 RA_dept_shp <- RA_shp%>% group_by(code_depar) %>% summarise(geometry = st_union(geometry))
-ggplot() +
+map_depts <- ggplot() +
   geom_sf(data = RA_dept_shp) +
   #geom_sf(data = sf_boulPatissRA_entr) +
   ggtitle("Départements de l'étude") +
   theme_dark()
+map_depts
 ```
 
 - Joignez aux communes les informations concernant les commerces (st_join()…) et calculez le nombre de commerces par commune.
@@ -560,11 +583,13 @@ RA_shp2 <- RA_shp %>% group_by(insee_comm) %>%
 
 ```{r echo=FALSE}
 RA_shp2 <- RA_shp2 %>% mutate(category=cut(nb_commerces_commune, breaks=c(0, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, Inf), labels=c("[0-10]", "]10-25]", "]25-50]", "]50-100]", "]100-250]", "]250-500]", "]500-1000]", "]1000-2500]", "]2500-5000]", "> 5000")))
-ggplot(RA_shp2) +
+map_commerces_commune <- ggplot(RA_shp2) +
   geom_sf(data = RA_shp2, aes(fill = category)) +
   ggtitle("Commerces alimentaires dans les départements de l'étude") +
   scale_fill_brewer("Nombre de commerces par commune", palette = "Reds") +
   theme_dark()
+ggplotly(map_commerces_commune) # que pour la sortie HTML
+#map_commerces_commune
 ```
 
 On crée une fonction pour afficher le nombre de commerces par commune d'un département.
@@ -573,20 +598,40 @@ On crée une fonction pour afficher le nombre de commerces par commune d'un dép
 show_nb_commerces_dept <- function(dept) {
   sf_dept <- mutate(RA_shp2, departement=str_extract(insee_comm, "^.{2}"))
   sf_dept <- sf_dept %>% filter(departement == dept) %>% mutate(category=cut(nb_commerces_commune, breaks=c(-Inf, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, Inf), labels=c("[0-10]", "]10-25]", "]25-50]", "]50-100]", "]100-250]", "]250-500]", "]500-1000]", "]1000-2500]", "]2500-5000]", "> 5000")))
-  ggplot() +
+  my_map <- ggplot() +
     geom_sf(data = sf_dept, aes(fill = category)) +
     ggtitle(paste0("Commerces alimentaires du ", dept)) +
     scale_fill_brewer("Nombre de commerces par commune", palette = "Greens") +
     theme_dark()
+  my_map
+  # if (knitr::opts_knit$get("rmarkdown.pandoc.to") == "pdf_document") {
+  #   my_map
+  # } else {
+  #   maply <- ggplotly(my_map)
+  #   maply
+  # }
 }
 ```
 
 Puis on affiche les résultats :
 
 ```{r echo=FALSE}
+# L'utilisation de plotly dans les boucles ne semblent pas fonctionner. Il faut passer par une liste et utiliser la fonction tagList
+# Voir https://github.com/ropensci/plotly/issues/570
 map(departements, show_nb_commerces_dept)
+#plotlist = list()
+#for (dept in departements) {
+  #p <- show_nb_commerces_dept(dept)
+  #p
+  #plotlist[[dept]] <- ggplotly(p)
+#}
+#htmltools::tagList(setNames(plotlist, NULL))
 ```
 
-```{r include=FALSE}
+
+# Session Info
+Pour finir voici les informations de la session utilisée pour ce TP :
+
+```{r echo=FALSE}
 sessionInfo()
 ```
