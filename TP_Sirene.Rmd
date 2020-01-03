@@ -1,27 +1,57 @@
 ---
-title: "TP_Sirene"
+title: "TP Sirene"
 author: "Benoît Blanc"
-date: "10/10/2019"
+date: "`r format(Sys.time(), '%d/%m/%Y')`"
 output:
-  pdf_document: 
+  prettydoc::html_pretty:
+    includes:
+      in_header: header.html
+    highlight: github # github vignette
+    theme: architect # cayman tactile architect leonids hpstr
+  html_document:
+    includes:
+      in_header: header.html
+    theme: cerulean #“default”, “cerulean”, “journal”, “flatly”, “darkly”, “readable”, “spacelab”, “united”, “cosmo”, “lumen”, “paper”, “sandstone”, “simplex”, “yeti”
+    highlight: zenburn #“default”, “tango”, “pygments”, “kate”, “monochrome”, “espresso”, “zenburn”, “haddock”, “breezedark”
+    df_print: paged
+    number_sections: TRUE
+    code_folding: "hide"
+    toc: TRUE
+    toc_depth: 2
+    toc_float: TRUE
+  rmdformats::readthedown:
+    includes:
+      in_header: header.html
+    code_folding: hide
+    self_contained: true
+    thumbnails: false
+    lightbox: false
+  pdf_document:
+    highlight: zenburn #“default”, “tango”, “pygments”, “kate”, “monochrome”, “espresso”, “zenburn”, “haddock”, “breezedark”
     latex_engine: xelatex
-  html_document: default
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
 ---
 
 ```{r setup, include=FALSE}
 #knitr::opts_chunk$set(echo = TRUE)
 
 knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60),  # For code
-                      width = 60)  # For output
+                      width = 60, tidy = TRUE)  # For output
 ```
 
 ## R Markdown
 
-Ce fichier montre les résultats des questions du TP disponible [ici](http://perso.ens-lyon.fr/lise.vaudor/Supports_formation/cours_geonum/organisation_cours_R.html). J'ai choisi de ne pas afficher tout le temps le code R que j'ai écrit pour répondre aux questions. Les résultats sont tous affichés dans le document. Le code R Markdown est disponible sur [mon compte GitHub](https://github.com/benoitblanc/R-Sirene). 
+Ce fichier montre les résultats des questions du TP disponible [ici](http://perso.ens-lyon.fr/lise.vaudor/Supports_formation/cours_geonum/organisation_cours_R.html). J'ai choisi de ne pas afficher tout le temps le code R que j'ai écrit pour répondre aux questions. Les résultats sont tous affichés dans le document. Le code R Markdown est disponible sur [mon compte GitHub](https://github.com/benoitblanc/R-Sirene). J'ai utilisé les données de Janvier 2020 pour les entreprises.
 
+Ce TP consiste à travailler sur des données de la base Sirene de l’INSEE, mise à disposition sur [data.gouv.fr](https://www.data.gouv.fr/fr/), et qui répertorie l’ensemble des entreprises et établissements actifs en France. Les métadonnées associées à cette base sont en partie décrites dans [ce tableau](https://www.data.gouv.fr/s/resources/base-sirene-des-entreprises-et-de-leurs-etablissements-siren-siret/20170112-180748/liste-modalites-l2.csv).
+
+***
+\newpage
 # Mise en place
 
-```{r echo=FALSE}
+```{r echo=FALSE, out.width="300pt"}
 knitr::include_graphics("workflow.png")
 ```
 
@@ -36,27 +66,34 @@ library(scales)
 library(tidyr)
 library(ggplot2)
 library(sf)
+library(plotly)
+library(prettydoc)
+library(rmdformats)
 ```
 
 ## Installations, téléchargements, premiers tests sur le département 42
-- Téléchargez les données du département 42, geo_siret_42.csv dans ce répertoire et dézippez le dossier sur votre machine.
+- Téléchargez les données du département 42, geo_siret_42.csv dans [ce répertoire](http://data.cquest.org/geo_sirene/v2019/2020-01/dep/) pour le mois de Janvier 2020 et dézippez le dossier sur votre machine.
 
-- Téléchargez la table qui renseigne les codes correspondant à l’Activité Principale de l’Etablissement (APE)APE_Type.csv
+- Téléchargez la table qui renseigne les codes correspondant à l’Activité Principale de l’Etablissement (APE)[APE_Type.csv](http://perso.ens-lyon.fr/lise.vaudor/Supports_formation/cours_geonum/data/APE_Type.csv)
 
 ## Lecture de tableaux de données
 - Depuis RStudio, créez un projet qui comprendra l’ensemble des données et documents nécessaires à réaliser l’ensemble des traitements qui vous seront demandés pour ce TP.
 
 - Créez le data.frame data42 en lisant la table geo-siret_42.csv.
+
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 data42 <- read_csv("data/geo_siret_42.csv")
 ```
+
 - Créez l’objet APE_Type en lisant le fichier relatif aux codes d’APE.
+
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 APE_Type <- read_csv("data/APE_Type.csv")
 ```
 
 ## Code et types d’activités => commerces alimentaires
 - Combien d’entreprises ont un nom (enseigne1Etablissement) qui comprend le terme “BOULANGERIE”?
+
 ```{r include=FALSE}
 boulangeries <- filter(data42, str_detect(enseigne1Etablissement, "BOULANGERIE"))
 ```
@@ -158,6 +195,8 @@ more100commerces10viandes <- left_join(morethan10viandes, morethan100commerces,
 
 On retrouve le même résultat : `r more100commerces10viandes$libelleCommuneEtablissement`
 
+***
+\newpage
 # Rapport, statistiques descriptives
 A ce stade, votre script commence à être un peu long et (peut-être) un peu désordonné… Ne serait-ce pas plus agréable de continuer votre projet sous la forme d’un rapport Rmarkdown? (Ne répondez pas à cette question, elle est rhétorique…).
 
@@ -168,8 +207,11 @@ Les 3 communes qui comptent le plus d'entreprises sont `r morecommerces$libelleC
 
 A partir de maintenant, votre document de travail sera un document`___.Rmd’ et non le script que vous avez créé initialement…
 
+***
+\newpage
 # Programmation: automatisation pour plusieurs départements
-```{r echo=FALSE}
+
+```{r echo=FALSE, out.width="300pt"}
 knitr::include_graphics("workflow_prog.png")
 ```
 
@@ -264,8 +306,11 @@ alimRA_entr <- read_csv("data/alimRA_entr.csv")
 #alimRA_entr <- map(., mutate(., codePostalEtablissement=convert_code_postal(codePostalEtablissement)))
 ```
 
+***
+\newpage
 # Résumé par commune et type de commerce
-```{r, include=TRUE, echo=FALSE}
+
+```{r, include=TRUE, echo=FALSE, out.width="300pt"}
 knitr::include_graphics("workflow_resume.png")
 ```
 
@@ -306,6 +351,7 @@ alimRA_typeCom <- left_join(alimRA_Com, alimRA_type,
 ```
 
 Quelles communes comptant plus de 100 commerces comptes au moins 5% de commerces de type “viande”?
+
 ```{r include=FALSE}
 communes_15pct_bar <- filter(alimRA_typeCom, TypeAbreg=='bar' & nInCom >= 100 & propInTypeCom >= 15)
 communes_5pct_viande <- filter(alimRA_typeCom, TypeAbreg=='viande' & nInCom >= 100 & propInTypeCom >= 5)
@@ -335,8 +381,11 @@ propLyon8 <- ggplot(lyon8, aes(x="", y=propInTypeCom, fill=TypeAbreg)) +
 propLyon8
 ```
 
+***
+\newpage
 # Evolution dans le temps des créations d’entreprise
-```{r, include=TRUE, echo=FALSE}
+
+```{r, include=TRUE, echo=FALSE, out.width="300pt"}
 knitr::include_graphics("workflow_temps.png")
 ```
 
@@ -348,18 +397,21 @@ Pour le moment, dateCreationEtablissement est considéré comme une variable de 
 - Installez et chargez le package lubridate.
 
 - Transformez le tableau alimRA_entr en modifiant la classe de dateCreationEtablissement à l’aide d’une fonction de lubridate.
+
 ```{r include=FALSE}
 alimRA_entr <- mutate(alimRA_entr, dateCreationEtablissement = ymd(dateCreationEtablissement))
 class(alimRA_entr$dateCreationEtablissement)
 ```
 
 - Ajoutez une variable annee au tableau alimRA_entr à l’aide, à nouveau, d’une des fonctions de lubridate.
+
 ```{r include=FALSE}
 alimRA_entr <- mutate(alimRA_entr, annee = year(dateCreationEtablissement))
 ```
 
 ## Résumé, filtre
 - Créez une table alimRA_typeAn qui recense le nombre d’entreprises par année (nInAn), et par type*année (nInTypeAn).
+
 ```{r include=FALSE}
 alimRA_annee <- group_by(alimRA_entr, annee)%>%
   summarise(nInAn=n())
@@ -370,6 +422,7 @@ alimRA_typeAn <- left_join(alimRA_type_annee, alimRA_annee,
 ```
 
 - Filtrez les données de alimRA_typeAn pour ne garder que les entreprises dont la création correspond aux années >=1970.
+
 ```{r include=FALSE}
 alimRA_ap1970 <- filter(alimRA_typeAn, annee >= 1970)
 ```
@@ -377,6 +430,7 @@ alimRA_ap1970 <- filter(alimRA_typeAn, annee >= 1970)
 ## Graphiques: évolution du nombre d’entreprises au cours du temps
 - Installez et chargez le package ggplot2
 - Réalisez un graphique représentant l’évolution des proportions d’entreprises (par type) par année.
+
 ```{r echo=FALSE}
 alimRA_ap1970 <- mutate(alimRA_ap1970, propTypeAn = as.numeric(sprintf("%0.2f", nInTypeAn / nInAn * 100)))
 alimRA_ap1970 <- filter(alimRA_ap1970, annee!=2020)
@@ -385,6 +439,7 @@ prop_alimRA_ap1970 +
   geom_line(size = 1) + 
   ggtitle("Evolution des proportions d'entreprises par type par année") + scale_color_discrete(name = "Type de commerce", labels=c("Autre", "Bar", "Boulangerie-Pâtisserie", "Fruits et légumes", "Produits laitiers", "Magasin spécialisé", "Poissonnerie", "Restaurant", "Supermarché", "Traiteur", "Boucherie")) + labs(x="Année", y="Taux d'entreprise") + theme_minimal()
 ```
+
 On peut aussi séparer les types de commerce et créer une grille avec un graphique pour chaque type :
 ```{r echo=FALSE, fig.height=10}
 labels = c(autres = "Autre", bar = "Bar", boulPatiss = "Boulangerie-Pâtisserie", fruitsleg = "Fruits et légumes", laitier = "Produits laitiers", magasinSpecialise = "Magasin spécialisé", poisson = "Poissonnerie", restau = "Restaurant", supermarche = "Supermarché", traiteur = "Traiteur", viande = "Boucherie")
@@ -392,6 +447,7 @@ prop_alimRA_ap1970 + guides(fill = "none") + geom_area(show.legend = FALSE) + fa
 ```
 
 - Réalisez ce même graphique, mais en représentant le nombre de créations d’entreprises par année et par type, pour les 5 types comptant le plus de créations d’entreprises (au total).
+
 ```{r echo=FALSE}
 alimRA_5types <- group_by(alimRA_ap1970, TypeAbreg) %>% summarise(nb_creations = sum(nInTypeAn)) %>%
   arrange(desc(nb_creations)) %>% head(5)
@@ -402,9 +458,11 @@ nb_creations_alimRA_ap1970 +
   ggtitle("Nombre de créations d'entreprises par type par année") + scale_color_discrete(name = "Type de commerce", labels = c("Bar", "Boulangerie-Pâtisserie", "Magasin spécialisé", "Restaurant", "Supermarché")) + labs(x="Année", y="Nombre de créations d'entreprises")+ theme_minimal()
 ```
 
+***
+\newpage
 # Cartes
 
-```{r, include=TRUE, echo=FALSE}
+```{r, include=TRUE, echo=FALSE, out.width="300pt"}
 knitr::include_graphics("workflow_cartes.png")
 ```
 
@@ -489,6 +547,7 @@ ggplot() +
 ```
 
 - Joignez aux communes les informations concernant les commerces (st_join()…) et calculez le nombre de commerces par commune.
+
 ```{r include=FALSE}
 sf_alimRA_entr <- st_transform(sf_alimRA_entr, 3857)
 RA_shp <- st_join(RA_shp, sf_alimRA_entr, join = st_intersects, left = TRUE)
@@ -509,6 +568,7 @@ ggplot(RA_shp2) +
 ```
 
 On crée une fonction pour afficher le nombre de commerces par commune d'un département.
+
 ```{r include=FALSE}
 show_nb_commerces_dept <- function(dept) {
   sf_dept <- mutate(RA_shp2, departement=str_extract(insee_comm, "^.{2}"))
@@ -522,6 +582,11 @@ show_nb_commerces_dept <- function(dept) {
 ```
 
 Puis on affiche les résultats :
+
 ```{r echo=FALSE}
 map(departements, show_nb_commerces_dept)
+```
+
+```{r include=FALSE}
+sessionInfo()
 ```
