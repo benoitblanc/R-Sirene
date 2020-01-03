@@ -11,6 +11,17 @@ output:
     self_contained: true
     thumbnails: false
     lightbox: false
+  prettydoc::html_pretty:
+    includes:
+      in_header: header.html
+    highlight: github # github vignette
+    theme: architect # cayman tactile architect leonids hpstr
+  pdf_document:
+    highlight: zenburn #“default”, “tango”, “pygments”, “kate”, “monochrome”, “espresso”, “zenburn”, “haddock”, “breezedark”
+    latex_engine: xelatex
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
   html_document:
     includes:
       in_header: header.html
@@ -22,17 +33,6 @@ output:
     toc: TRUE
     toc_depth: 2
     toc_float: TRUE
-  pdf_document:
-    highlight: zenburn #“default”, “tango”, “pygments”, “kate”, “monochrome”, “espresso”, “zenburn”, “haddock”, “breezedark”
-    latex_engine: xelatex
-    number_sections: yes
-    toc: yes
-    toc_depth: 2
-  prettydoc::html_pretty:
-    includes:
-      in_header: header.html
-    highlight: github # github vignette
-    theme: architect # cayman tactile architect leonids hpstr
 ---
 
 ```{r setup, include=FALSE}
@@ -67,6 +67,8 @@ library(scales)
 library(tidyr)
 library(ggplot2)
 library(sf)
+library(tmap)
+library(tmaptools)
 library(plotly)
 library(prettydoc)
 library(rmdformats)
@@ -500,6 +502,23 @@ map_boulPatiss_annee <- ggplot(sf_boulPatissRA_entr) +
 map_boulPatiss_annee
 ```
 
+Et avec *tmap* et une animation par année :
+```{r include=FALSE}
+RA_shp <- st_read("data/n_com_fla_000.shp", stringsAsFactors = FALSE)
+RA_shp <- filter(RA_shp, code_depar %in% departements)
+RA_dept_shp <- RA_shp%>% group_by(code_depar) %>% summarise(geometry = st_union(geometry))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#tmap_mode("plot")
+anim <- tm_shape(sf_boulPatissRA_entr)+tm_dots(col = "annee", size=0.2, title = "Année de création", labels = "annee")+
+  tm_layout(legend.show = FALSE, legend.outside=TRUE, main.title.size = 1, legend.frame = TRUE) + 
+  tm_facets(along = "annee", free.coords = FALSE) +
+  tm_shape(RA_dept_shp)+tm_borders(lwd = 0.25)
+tmap_animation(anim, filename = "anim.gif", delay = 75, width = 800)
+magick::image_read("anim.gif")
+```
+
 ```{r include=FALSE}
 load_SHP_dept <- function(dept) {
   filename <- "data/GEOFLA_XX.shp"
@@ -522,7 +541,7 @@ RA_shp <- filter(RA_shp, code_depar %in% departements)
 
 On crée une fonction pour afficher les commerces d'un département
 ```{r include=FALSE}
-show_commerces_dept <- function(dept) {
+show_commerces_dept_ggplot <- function(dept) {
   sf_commerces <- sf_boulPatissRA_entr %>% filter(departement == dept)
   sf_dept <- RA_shp%>% filter(code_depar == dept) %>% group_by(code_depar) %>% summarise(geometry = st_union(geometry))
   my_map <- ggplot() +
@@ -540,6 +559,20 @@ show_commerces_dept <- function(dept) {
   #   maply
   # }
 }
+show_commerces_dept_tmap <- function(dept) {
+  sf_commerces <- sf_boulPatissRA_entr %>% filter(departement == dept)
+  sf_dept <- RA_shp%>% filter(code_depar == dept) %>% group_by(code_depar) %>% summarise(geometry = st_union(geometry))
+
+  #tmap_mode("plot")
+  tm_shape(sf_dept)+tm_fill(col = "grey")+tm_shape(sf_commerces)+
+    tm_dots(col = "annee", size=0.2, title = "Année de création")+
+    tm_layout(main.title = paste0("Boulangeries-Pâtisseries du ", dept, " et leur année de création"), legend.outside=TRUE, 
+            main.title.size = 1, legend.frame = TRUE)
+}
+show_commerces_dept <- function(dept) {
+  show_commerces_dept_ggplot(dept)
+  show_commerces_dept_tmap(dept)
+}
 ```
 
 On peut afficher les boulangeries-pâtisseries avec leur année de création, par département :
@@ -547,7 +580,7 @@ On peut afficher les boulangeries-pâtisseries avec leur année de création, pa
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # L'utilisation de plotly dans les boucles ne semblent pas fonctionner. Il faut passer par une liste et utiliser la fonction tagList
 # Voir https://github.com/ropensci/plotly/issues/570
-map(departements, show_commerces_dept)
+map(departements, show_commerces_dept_ggplot)
 #plotlist = list()
 #for (dept in departements) {
   #p <- show_commerces_dept(dept)
@@ -555,6 +588,12 @@ map(departements, show_commerces_dept)
   #plotlist[[dept]] <- ggplotly(p)
 #}
 #htmltools::tagList(setNames(plotlist, NULL))
+```
+
+Et avec *tmap* :
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+tmap_mode("plot")
+map(departements, show_commerces_dept_tmap)
 ```
 
 On affiche maintenant les départements de l'étude à partir du fichier SHP récupéré précédemment :
@@ -574,7 +613,7 @@ map_depts
 ```{r include=FALSE}
 sf_alimRA_entr <- st_transform(sf_alimRA_entr, 3857)
 RA_shp <- st_join(RA_shp, sf_alimRA_entr, join = st_intersects, left = TRUE)
-RA_shp2 <- RA_shp %>% group_by(insee_comm) %>%
+RA_shp2 <- RA_shp %>% group_by(insee_comm, nom_commun) %>%
   summarise(nb_commerces_commune=n())
 #ggplot(RA_shp2) + geom_sf(data = RA_shp2, aes(fill = nb_commerces_commune))
 ```
@@ -592,10 +631,24 @@ ggplotly(map_commerces_commune) # que pour la sortie HTML
 #map_commerces_commune
 ```
 
+Et avec *tmap* :
+```{r eval=FALSE, include=FALSE}
+tmaptools::palette_explorer()
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+tmap_mode("view")
+tm_shape(RA_shp2)+tm_polygons(col = "category", palette = "YlOrRd", size=0.2, title = "Nombre de commerces", 
+                              id = "nom_commun", popup.vars=c("Nombre de commerces"="nb_commerces_commune"))+
+  tm_scale_bar(position = c("left", "top"))+
+  tm_layout(main.title = "Commerces alimentaires dans les départements de l'étude", legend.outside=TRUE, 
+            main.title.size = 1, legend.frame = TRUE)
+```
+
 On crée une fonction pour afficher le nombre de commerces par commune d'un département.
 
-```{r include=FALSE}
-show_nb_commerces_dept <- function(dept) {
+```{r message=FALSE, warning=FALSE, include=FALSE}
+show_nb_commerces_dept_ggplot <- function(dept) {
   sf_dept <- mutate(RA_shp2, departement=str_extract(insee_comm, "^.{2}"))
   sf_dept <- sf_dept %>% filter(departement == dept) %>% mutate(category=cut(nb_commerces_commune, breaks=c(-Inf, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, Inf), labels=c("[0-10]", "]10-25]", "]25-50]", "]50-100]", "]100-250]", "]250-500]", "]500-1000]", "]1000-2500]", "]2500-5000]", "> 5000")))
   my_map <- ggplot() +
@@ -611,6 +664,20 @@ show_nb_commerces_dept <- function(dept) {
   #   maply
   # }
 }
+show_nb_commerces_dept_tmap <- function(dept) {
+  sf_dept <- mutate(RA_shp2, departement=str_extract(insee_comm, "^.{2}"))
+  sf_dept <- sf_dept %>% filter(departement == dept) %>% mutate(category=cut(nb_commerces_commune, breaks=c(-Inf, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, Inf), labels=c("[0-10]", "]10-25]", "]25-50]", "]50-100]", "]100-250]", "]250-500]", "]500-1000]", "]1000-2500]", "]2500-5000]", "> 5000")))
+  #tmap_mode("view")
+  my_map <- tm_shape(sf_dept)+tm_polygons(col = "category", palette = "Greens", size=0.2, title = "Nombre de commerces", 
+                                id = "nom_commun", popup.vars=c("Nombre de commerces"="nb_commerces_commune"))+
+    tm_layout(main.title = paste0("Commerces alimentaires du ", dept), legend.outside=TRUE, 
+            main.title.size = 1, legend.frame = TRUE)
+  return(my_map)
+}
+show_nb_commerces_dept <- function(dept) {
+  show_nb_commerces_dept_ggplot(dept)
+  show_nb_commerces_dept_tmap(dept)
+}
 ```
 
 Puis on affiche les résultats :
@@ -618,7 +685,7 @@ Puis on affiche les résultats :
 ```{r echo=FALSE}
 # L'utilisation de plotly dans les boucles ne semblent pas fonctionner. Il faut passer par une liste et utiliser la fonction tagList
 # Voir https://github.com/ropensci/plotly/issues/570
-map(departements, show_nb_commerces_dept)
+map(departements, show_nb_commerces_dept_ggplot)
 #plotlist = list()
 #for (dept in departements) {
   #p <- show_nb_commerces_dept(dept)
@@ -627,6 +694,11 @@ map(departements, show_nb_commerces_dept)
 #}
 #htmltools::tagList(setNames(plotlist, NULL))
 ```
+
+<!-- #Et avec *tmap* : -->
+<!-- #```{r echo=FALSE, message=FALSE, warning=FALSE} -->
+<!-- #map(departements, show_nb_commerces_dept_tmap) -->
+<!-- #``` -->
 
 
 # Session Info
