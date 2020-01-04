@@ -1,3 +1,7 @@
+# TP Geonum Benoît Blanc
+TP Geonum disponible [ici](http://perso.ens-lyon.fr/lise.vaudor/Supports_formation/cours_geonum/organisation_cours_R.html)
+La sortie HTML avec le package *rmdformats* est hébergée sur Github Pages : https://benoitblanc.github.io/R-Sirene/
+
 ## Welcome to GitHub Pages
 
 You can use the [editor on GitHub](https://github.com/benoitblanc/R-Sirene/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
